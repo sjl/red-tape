@@ -4,6 +4,8 @@ lib/
 classes/
 checkouts/
 pom.xml
+docs/build
+feedback
 *.jar
 *.class
 .lein-deps-sum

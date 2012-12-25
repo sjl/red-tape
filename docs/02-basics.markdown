@@ -1,0 +1,334 @@
+Basics
+======
+
+Red Tape is a fairly simple library.  It's designed to take raw form data
+(strings), validate it, and turn it into useful data structures.
+
+Red Tape does *not* handle rendering form fields into HTML.  That's the job of
+your templating library, and you always needs to customize `<input>` tags
+anyway.
+
+It's designed with Ring, Compojure, and friends in mind (though it's not limited
+to them) so let's take a look at a really simple application to see it in
+action.
+
+[TOC]
+
+Scaffolding
+-----------
+
+For this tutorial we'll create a Compojure app that allows people to submit
+comments.  Let's sketch out the normal structure of that now:
+
+    :::clojure
+    (ns feedback
+      (:require [compojure.core :refer :all]
+                [compojure.route :as route]
+                [ring.adapter.jetty :refer [run-jetty]]
+                [ring.middleware.params :refer [wrap-params]]))
+
+    (def page "
+        <html>
+            <body>
+                <label>Who are you?</label>
+                <input type='text' name='name'/>
+                <label>What do you want to say?</label>
+                <textarea name='comment'/>
+            </body>
+        </html>
+    ")
+
+    (defn save-feedback [from comment]
+      ; In a real app this would save the string to a database, email
+      ; it to someone, etc.
+      (println from "said:" comment))
+
+    (defn handle-get []
+      ; ...
+    )
+
+    (defn handle-post []
+      ; ...
+    )
+
+    (defroutes app
+      (GET  "/" request (handle-get request))
+      (POST "/" request (handle-post request)))
+
+    (def handler (-> app
+                   wrap-params))
+
+    (defonce server
+      (run-jetty #'handler {:port 3000}))
+
+That's about it for the boilerplate.  The next step is to fill in the bodies of
+`handle-get` and `handle-post`.  We'll need to do a few things:
+
+* Validate incoming POST data to make sure it's sane.
+* If the data isn't valid, we need to inform the user and re-render the form
+  nicely.
+* Once we've got valid data, we'll clean it up and send it off to be saved.
+
+This is where Red Tape comes in.
+
+Defining the Form
+-----------------
+
+The main part of Red Tape is the `defform` macro.  Let's define a simple
+feedback form:
+
+    :::clojure
+    (ns feedback
+      ; ...
+      (require [red-tape.core :refer [defform]]))
+
+    (defform feedback-form {}
+      :name []
+      :comment [])
+
+`defform` takes a name, a map of form options, and a sequence of keywords and
+vectors representing fields.  We'll look at each of those parts in more detail
+later, but for now let's actually *use* the form we've defined.
+
+Using the Form
+--------------
+
+Defining a form results in a simple function that can be called with or without
+data.  Let's sketch out how our handler functions will look:
+
+    :::clojure
+    (defn handle-get
+      ([request]
+        (handle-get request (feedback-form)))
+      ([request form]
+        page))
+
+There are a couple of things going on here.
+
+We've split the definition of `handle-get` into two pieces.  The first piece
+takes a request, builds the default feedback form and forwards those along to
+the second piece, which actually renders the page.  You'll see why we split it
+up like that shortly.
+
+Calling `(feedback-form)` without data returns a map representing a fresh form.
+It will look like this:
+
+    :::clojure
+    {:fresh true
+     :valid false
+     :arguments {}
+     :data {}
+     :results nil
+     :errors nil}
+
+We'll see how to use this later.  Let's move on to `handle-post`:
+
+    :::clojure
+    (defn handle-post [request]
+      (let [data (:params request)
+            form (feedback-form data)]
+        ; ...))
+
+`handle-post` takes the raw HTTP POST data (from `(:params request)`) and passes
+it through the feedback form.  Once again this results in a map.  Assuming the
+user entered the name "Steve" and the comment "Hello!", the resulting map will
+look like this:
+
+    :::clojure
+    {:fresh false
+     :valid true
+     :arguments {}
+     :data {:name "Steve"
+            :comment "Hello!"}
+     :results {:name "Steve"
+               :comment "Hello!"}
+     :errors nil}
+
+In a nutshell, this is all Red Tape does.  You define form functions using
+`defform`, and those functions take in data and turn it into a map like this.
+
+Let's add a bit of data cleaning to the form to get something more useful.
+
+Cleaners
+--------
+
+Every field you define in a `defform` also gets a vector of "cleaners"
+associated with it.  A cleaner is simply a vanilla Clojure function that takes
+one argument (the incoming value) and returns a new value (the outgoing result).
+
+Let's see this in action by modifying our form to strip leading and trailing
+whitespace from the user's name automatically:
+
+    :::clojure
+    (defform feedback-form {}
+      :name [clojure.string/trim]
+      :comment [])
+
+`clojure.string/trim` is just a normal Clojure function that trims off
+whitespace.  Let's imagine that the user entered " Steve " as their name this
+time.  Calling `(feedback-form data)` now results in the following map:
+
+    :::clojure
+    {:fresh false
+     :valid true
+     :arguments {}
+     :data    {:name " Steve " :comment "Hello!"}
+     :results {:name "Steve"   :comment "Hello!"}
+     :errors nil}
+
+The `:data` in the result map still contains the raw data the user entered, but
+the `:results` have had their values passed through their cleaners first.
+
+You can define as many cleaners as you want for each field.  The data will be
+threaded through them in order, much like the `->` macro.  This lets you define
+simple cleaning functions and combine them as needed.  For example:
+
+    :::clojure
+    (defform feedback-form {}
+      :name [clojure.string/trim
+             clojure.string/lower-case]
+      :comment [clojure.string/trim])
+
+    (feedback-form {:name " Steve " :comment " Hello! "})
+    ; =>
+    {:fresh false
+     :valid true
+     :data    {:name " Steve " :comment " Hello! "}
+     :results {:name "steve"   :comment "Hello!"}
+     ; ...
+     }
+
+Here we're trimming the name and then lowercasing it, and trimming the comment
+as well (but not lowercasing it).
+
+Validation
+----------
+
+Cleaners also serve another purpose.  If a cleaner function throws an Exception,
+the value won't progress any further, and the result map will be marked as
+invalid.
+
+Let's look at an example:
+
+    :::clojure
+    (defform age-form
+      :age [clojure.string/trim
+            #(Long. %)])
+
+If we call this form with a number, everything is fine:
+
+    :::clojure
+    (age-form {:age "27"})
+    ; =>
+    {:fresh false
+     :valid true
+     :data    {:age "27"}
+     :results {:age 27}
+     :errors nil}
+
+But if we try to feed it garbage:
+
+    :::clojure
+    (age-form {:age "cats"})
+    ; =>
+    {:fresh false
+     :valid false
+     :data {:age "cats"}
+     :results nil
+     :errors {:age <NumberFormatException: ...>}}
+
+There are a few things to see here.  If any cleaner function throws an
+Exception, the resulting map will have `:valid` set to `false`.
+
+There will also be no `:results` entry in an invalid result.  You only get
+`:results` if your entire form is valid.
+
+The `:errors` map will map field names to the exception their cleaners threw.
+This happens on a per-field basis, so you can have separate errors for each
+field.
+
+Red Tape uses Slingshot's `try+` to catch exceptions, so if you want you can use
+`throw+` to throw errors in an easier-to-manage way and they'll be caught just
+fine.  We'll see an example of this later.
+
+Finally, the `:data` entry in the result map is present and contains the data
+the user entered, even though it turned out to be invalid.
+
+Putting it All Together
+-----------------------
+
+Now that we've seen how to clean and validate, we can finally connect the
+missing pieces to our feedback form.
+
+First we'll redefine our little HTML page so we can include some initial data in
+it:
+
+    :::clojure
+    (def page "
+        <html>
+            <body>
+                <label>Who are you?</label>
+                <input type='text' name='name' value='%s'/>
+                <label>What do you want to say?</label>
+                <textarea name='comment' value='%s'/>
+            </body>
+        </html>
+    ")
+
+The only change here is the `value='%s'` bits, which we'll use to stick in some
+data later.
+
+We'll redefine `feedback-form` one last time:
+
+    :::clojure
+    (defform feedback-form {}
+      :name [clojure.string/trim]
+      :comment [clojure.string/trim])
+
+Now we can write the GET handler:
+
+    :::clojure
+    (defn handle-get
+      ([request]
+        (handle-get request (feedback-form)))
+      ([request form]
+        (let [initial-name (:name (:data form))
+              initial-comment (:comment (:data form))]
+          (format page initial-name initial-comment))))
+
+Notice how we use the `:data` from the form when we're rendering the page.  This
+will make more sense once you see the POST handler:
+
+    :::clojure
+    (defn handle-post [request]
+      (let [data (:params request)
+            form (feedback-form data)]
+        (if (:valid form)
+          (let [{:keys [name comment]} (:results form)]
+            (save-feedback name comment)
+            (redirect "/"))
+          (handle-get request form))))
+
+We use the form to process the raw data, and then examine the result.  If it is
+valid, we save the feedback by using the cleaned `:results` and we're done.
+
+If it's *not* valid, we use the GET handler to re-render the form without
+redirecting.  We pass along our *invalid* form as we do that, so that when the
+GET handler uses the `:data` it will fill in the fields correctly so the user
+doesn't have to retype everything.
+
+Summary
+-------
+
+That was a lot to cover, but now you've seen the basic Red Tape workflow!  Most
+of the time you'll be doing what we just finished:
+
+* Defining the form.
+* Defining a GET handler that creates a blank form.
+* Defining a GET handler that takes a form (either blank or invalid) and renders
+  it to HTML.
+* Defining a POST handler that runs data through the form, examines the result,
+  and does the appropriate thing depending on whether it's valid or not.
+
+Now that you've got the general idea, it's time to look at a few topics in more
+detail.

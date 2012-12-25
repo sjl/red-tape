@@ -1,0 +1,9 @@
+Installation
+============
+
+Red Tape requires Leiningen 2.  Add the following to your `project.clj`:
+
+    [red-tape "0.0.1"]
+
+That's all there is to it.  Red Tape depends on one other library (Slingshot)
+but Leiningen should handle that for you.

@@ -1,8 +1,7 @@
 (ns red-tape.core-test
   (:require [clojure.test :refer :all]
             [red-tape.core :refer [defform]]
-            [red-tape.cleaners :as cs]
-            ))
+            [red-tape.cleaners :as cs]))
 
 
 (defform number-form {}
@@ -15,7 +14,7 @@
 (defform stripping-number-form {}
   :n [clojure.string/trim cs/to-long])
 
-(defform state-form {:bindings [states]}
+(defform state-form {:arguments [states]}
   :state [clojure.string/trim (partial cs/choices states)])
 
 

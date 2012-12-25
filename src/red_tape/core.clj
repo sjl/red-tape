@@ -170,10 +170,8 @@
   or (defn name ...).
 
   "
-  [{:keys [bindings initial clean]} fields]
-  (let [initial (or initial {})
-        bindings (or bindings [])
-        binding-keys (map keyword bindings)
+  [{:keys [arguments initial clean] :or {initial {} arguments []}} fields]
+  (let [arg-keys (map keyword arguments)
 
         ; Create the binding map, which is a map of keywords to symbols:
         ;
@@ -182,51 +180,46 @@
         ; This will end up being the body for (part of) the form function:
         ;
         ; (defn foo-form [f1 f2]
-        ;   {:bindings {:f1 f1 :f2 f2}})
-        binding-map (zip-map binding-keys bindings)
+        ;   {... :arguments {:f1 f1 :f2 f2} ...})
+        binding-map (zip-map arg-keys arguments)
 
         ; Transform fields from:
         ;
-        ; [:f1 [a] :f2 [b]]
+        ; [:f1 [a] :f2 [b c]]
         ;
         ; into vector pairs like:
         ;
         ; [[:f1 [a]]
-        ;  [:f2 [b]]]
+        ;  [:f2 [b c]]]
         fields (mapv vec (partition 2 fields))
 
         ; Get a vector of just the field keys like [:f1 :f2].
         field-keys (mapv first fields)
 
-        ; A fresh, unbound form simply returns a map.
-        fresh-body `{:fresh true
-                     :bindings {}
-                     :data (initial-data ~field-keys ~initial)
-                     :valid nil
-                     :errors nil
-                     :results nil}
-
-        ; A fresh, bound form includes the bindings in the map.
-        fresh-body-bound (assoc fresh-body :bindings binding-map)]
-    (remove nil?
-            [`([] ~fresh-body)
-             (when-not (empty? bindings)
-               `([~@bindings] ~fresh-body-bound))
-             `([~@bindings data#]
-               (-> ~fields
-                 (zip-fields data#)
-                 process-fields
-                 (process-result ~clean)
-                 (assoc :fresh false
-                        :data data#
-                        :bindings ~binding-map)))])))
+        ; A fresh form simply returns a map.
+        fresh `{:fresh true
+                :arguments ~binding-map
+                :data (initial-data ~field-keys ~initial)
+                :valid nil
+                :errors nil
+                :results nil}]
+    `[([~@arguments]
+       ~fresh)
+      ([~@arguments data#]
+       (-> ~fields
+         (zip-fields data#)
+         process-fields
+         (process-result ~clean)
+         (assoc :fresh false
+                :data data#
+                :arguments ~binding-map)))]))
 
 
 (defmacro form
-  [{:keys [bindings initial clean] :as options} & fields]
+  [{:keys [arguments initial clean] :as options} & fields]
   `(fn ~@(form-guts options fields)))
 
 (defmacro defform
-  [form-name {:keys [bindings initial clean] :as options} & fields]
+  [form-name {:keys [arguments initial clean] :as options} & fields]
   `(defn ~form-name ~@(form-guts options fields)))
 
