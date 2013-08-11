@@ -226,6 +226,7 @@ Otherwise the error is thrown:
 `ensure-not` passes the value through if it does *not* satisfy the predicate,
 and throws the error if it *does*.
 
+    :::clojure
     (defform user-profile {}
       :user-id [...]
       :username [...
@@ -237,6 +238,7 @@ and throws the error if it *does*.
 `red-tape.cleaners` also contains some pre-made cleaners that you'll probably
 find useful:
 
+    :::clojure
     (ns ...
       (:require [red-tape.cleaners :as cleaners]))
 
@@ -251,6 +253,29 @@ find useful:
       :state [cleaners/non-blank
               clojure.string/upper-case
               #(cleaners/choices #{"NY" "PA" "OR" ...})])
+
+Most of the built-in cleaners take an extra argument that lets you provide
+a custom error message when they fail:
+
+    :::clojure
+    (defform signup-form {}
+      :username [#(cleaners/matches #"[a-zA-Z0-9]+" %)])
+
+    (signup-form {:username "cats and dogs!"})
+    ; =>
+    {...
+     :errors {:username "Invalid format."}
+     ...}
+
+    (defform better-signup-form {}
+      :username [#(cleaners/matches #"[a-zA-Z0-9]+" %
+                   "Username may contain only letters and numbers.")])
+
+    (signup-form {:username "cats and dogs!"})
+    ; =>
+    {...
+     :errors {:username "Username may contain only letters and numbers."}
+     ...}
 
 See the [Reference](../reference) section for the full list of built-in
 cleaners.
