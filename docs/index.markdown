@@ -1,5 +1,5 @@
 Red Tape is a Clojure library for processing form data.  It's heavily inspired
-by Django's forms, with some Clojurey twists.
+by Django's forms (the good parts), with some Clojurey twists.
 
 **License:** MIT/X11  
 **Documentation:** <http://sjl.bitbucket.org/red-tape/>  

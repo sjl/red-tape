@@ -55,8 +55,8 @@ And calling it with data would look like this:
 Using Form Arguments
 --------------------
 
-Using form arguments is simple.  There's one key idea: your cleaner definitions
-are evaluated in a context where the form arguments are bound.
+Using form arguments relies on one key idea: your cleaner definitions are
+evaluated in a context where the form arguments are bound.
 
 Here's how we could use our `user` argument:
 
@@ -80,6 +80,6 @@ Initial Data
 ------------
 
 The initial data map is also evaluated in a context where the form arguments are
-bound.
+bound.  You can use this to define default values based on the form arguments.
 
 TODO: More about this.

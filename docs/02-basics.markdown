@@ -198,7 +198,7 @@ simple cleaning functions and combine them as needed.  For example:
      }
 
 Here we're trimming the name and then lowercasing it, and trimming the comment
-as well (but not lowercasing it).
+as well (but not lowercasing that).
 
 Validation
 ----------
@@ -248,10 +248,34 @@ field.
 
 Red Tape uses Slingshot's `try+` to catch exceptions, so if you want you can use
 `throw+` to throw errors in an easier-to-manage way and they'll be caught just
-fine.  We'll see an example of this later.
+fine.
 
-Finally, the `:data` entry in the result map is present and contains the data
-the user entered, even though it turned out to be invalid.
+    :::clojure
+    (defn ensure-not-immortal [age]
+      (if (> age 120)
+        (throw+ "I think you're lying!")
+        age))
+
+    (defform age-form {}
+      :age [clojure.string/trim
+            #(Long. %)
+            ensure-not-immortal])
+
+    (age-form {:age "1000"})
+    ; =>
+    {:fresh false
+     :valid false
+     :data {:age "cats"}
+     :results nil
+     :errors {:age "I think you're lying!"}}
+
+Notice how `ensure-not-immortal` expected a number and not a String.  This is
+fine because we still kept the `#(Long. %)` cleaner to handle that conversion.
+
+Finally, also notice that the `:data` entry in the result map is present and
+contains the data the user entered, even though it turned out to be invalid.
+We'll use this later when we want to rerender the form, so the user doesn't have
+to type all the data out again.
 
 Built-In Cleaners
 -----------------

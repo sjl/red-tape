@@ -75,6 +75,46 @@ Then that long was given to the second cleaner, which tried to look it up in the
 database.  Since it wasn't found, the cleaner used `throw+` to throw a string as
 an error, so the form was marked as invalid.
 
+Optional Fields
+---------------
+
+Sometimes you want to be have a field that is optional, but when it's given you
+want to transform it.
+
+You *could* do this by adapting your cleaner functions like this:
+
+    :::clojure
+    (defform user-profile {}
+      :user-id [...]
+      :username [...]
+      :bio [#(when-let [bio %] bio)
+            #(when-let [bio %]
+               (if (< (length bio) 10)
+                 (throw+ "If given, must be at least 10 characters.")
+                 bio))
+            #(when-let [bio %]
+               (if (> (length bio) 2000)
+                 (throw+ "Must be under 2000 characters.")
+                 bio))])
+
+This will certainly work, but it means you have to convert the empty string to
+`nil` manually and then do a lot of `when-let`ing in your cleaners to pass the
+`nil` through to the end.
+
+You can avoid this by marking the cleaners as `:red-tape/optional`:
+
+    :::clojure
+    (defform user-profile {}
+      :user-id [...]
+      :username [...]
+      :bio ^:red-tape/optional [
+        #(if (< (length %) 10)
+           (throw+ "If given, must be at least 10 characters.")
+           %)
+        #(if (> (length %) 2000)
+           (throw+ "Must be under 2000 characters.")
+           %)])
+
 Form-Level Cleaners
 -------------------
 
@@ -116,7 +156,7 @@ There's a lot to see here.  First, we defined a function that takes a map of
 form data (after any field cleaners have been run).
 
 If the new password fields match, the function returns the map of data.  In this
-case it doesn't modify it at all, but we could if we wanted to.
+case it doesn't modify it at all, but it could if we wanted to.
 
 If the new passwords don't match, an error is thrown with Slingshot's `throw+`.
 
@@ -168,8 +208,52 @@ a vector to make sure they run in the correct order.
 Built-In Cleaners
 -----------------
 
-Red Tape contains a number of common cleaners in `red-tape.cleaners`.  See the
-[Reference](../reference) section for the full list.
+Red Tape contains a number of common cleaners in `red-tape.cleaners`.  There are
+also some handy macros for making your own cleaners.
+
+`ensure-is` is a macro that takes a value, a predicate, and an error message.
+If the value satisfies the predicate, that value is passed straight through.
+Otherwise the error is thrown:
+
+    :::clojure
+    (defform user-profile {}
+      :user-id [...
+                #(ensure-is % pos? "Invalid ID.")
+                ...]
+      :username [...]
+      :bio ^:red-tape/optional [...])
+
+`ensure-not` passes the value through if it does *not* satisfy the predicate,
+and throws the error if it *does*.
+
+    (defform user-profile {}
+      :user-id [...]
+      :username [...
+                 #(ensure-not % #{"admin" "administrator"}
+                              "That username is reserved, sorry.")
+                 ...]
+      :bio ^:red-tape/optional [...])
+
+`red-tape.cleaners` also contains some pre-made cleaners that you'll probably
+find useful:
+
+    (ns ...
+      (:require [red-tape.cleaners :as cleaners]))
+
+    (defform user-profile {}
+      :user-id [cleaners/to-long
+                cleaners/positive
+                ...]
+      :username [cleaners/non-blank
+                 #(cleaners/length 3 20 %)
+                 ...]
+      :bio ^:red-tape/optional [#(cleaners/max-length 2000 %)]
+      :state [cleaners/non-blank
+              clojure.string/upper-case
+              #(cleaners/choices #{"NY" "PA" "OR" ...})])
+
+See the [Reference](../reference) section for the full list of built-in
+cleaners.
 
 Results
 -------

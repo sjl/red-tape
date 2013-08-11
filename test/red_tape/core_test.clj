@@ -98,6 +98,7 @@
        (= (:errors (state-form available-states {:state data}))
           errors)
        #{"pa" "ny"} "nj" {:state "Invalid choice."}))
+
 (deftest test-initial-form
   ; Initial data should be passed through to the initial :data map.
   (is (= (initial-form)
@@ -112,6 +113,7 @@
           :results {:x "1" :y "2"}
           :arguments {}
           :errors nil})))
+
 (deftest test-dynamic-initial-form
   (is (= (dynamic-initial-form ["1" "2"])
          (fresh-form {:a "1"
@@ -126,6 +128,7 @@
           :results {:a "3" :b "4"}
           :arguments {:x ["1" "2"]}
           :errors nil})))
+
 (deftest test-form-cleaner-a-b
   (is (= (:results (form-cleaner-a-b {:a "foo" :b "foo"}))
          {:a "foo" :b "foo"}))

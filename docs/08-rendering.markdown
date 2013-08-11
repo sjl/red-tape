@@ -104,3 +104,6 @@ top of the form.  If there were, we display a message.
 We also check if there were any errors for the specific field, and if so we
 display it.  In this simple example there's only one field, but in most forms
 you'll have many fields, each of which may or may not have errors.
+
+This form didn't have any form-level cleaners, but if it did we would have
+wanted to display those too (probably at the top of the form).

@@ -2,8 +2,8 @@ Form Input
 ==========
 
 Red Tape forms take a map of data as input.  Red Tape is designed with web-based
-forms in mind, but since it operates on plain old maps you could theoretically
-use it for other things as well.
+forms in mind, but since it operates on plain old maps you could certainly use
+it for other things as well.
 
 [TOC]
 

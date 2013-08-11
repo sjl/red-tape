@@ -1,13 +1,15 @@
-# red-tape
+Red Tape
+========
 
-A Clojure library designed to ... well, that part is up to you.
+Red Tape is a Clojure library for processing form data.  It's heavily inspired
+by Django's forms (the good parts), with some Clojurey twists.
 
-## Usage
+Read [the documentation][docs] for more information.
 
-FIXME
+[docs]: http://sjl.bitbucket.org/red-tape/
 
 ## License
 
-Copyright © 2012 Steve Losh and contributors.
+Copyright 2013 Steve Losh and contributors.
 
 Distributed under the MIT/X11 license.

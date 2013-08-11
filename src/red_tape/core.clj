@@ -23,6 +23,22 @@
     (catch Object error
       [nil error])))
 
+(defn clean-data
+  "Clean the data with the given vector of cleaners.
+
+  If the cleaners vector is tagged as ^:red-tape/optional and the data is an
+  empty string, the cleaners are skipped and the result is simply nil.
+
+  Otherwise the data is run through the cleaner functions and a [results error]
+  pair is returned, at least one of which will always be nil.
+
+  "
+  [data cleaners]
+  (if (and (= data "")
+           (contains (:tags (meta cleaners)) :red-tape/optional))
+    [nil nil]
+    (pipe-through data cleaners)))
+
 
 (defn zip-fields
   "Zip the fields and data together into a unified vector.
@@ -72,7 +88,7 @@
   "
   [zipped-fields]
   (let [results (for [[k data cleaners] zipped-fields
-                      :let [[value error] (pipe-through data cleaners)]]
+                      :let [[value error] (clean-data data cleaners)]]
                   [k value error])
         values (map-for [[k v _] results]
                          [k v])
@@ -162,7 +178,7 @@
 (defn initial-data
   "Return the initial data for a fresh form."
   [field-keys initial]
-  (let [blank (into {} (map #(vector % "") field-keys))]
+  (let [blank (map-for [k field-keys] [k ""])]
     (merge blank initial)))
 
 (defn zip-map
