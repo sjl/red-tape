@@ -5,8 +5,7 @@ Red Tape is a fairly simple library.  It's designed to take raw form data
 (strings), validate it, and turn it into useful data structures.
 
 Red Tape does *not* handle rendering form fields into HTML.  That's the job of
-your templating library, and you always needs to customize `<input>` tags
-anyway.
+your templating library, and you always need to customize `<input>` tags anyway.
 
 It's designed with Ring, Compojure, and friends in mind (though it's not limited
 to them) so let's take a look at a really simple application to see it in
@@ -24,19 +23,18 @@ comments.  Let's sketch out the normal structure of that now:
     (ns feedback
       (:require [compojure.core :refer :all]
                 [compojure.route :as route]
+                [hiccup.page :refer [html5]]
                 [ring.adapter.jetty :refer [run-jetty]]
                 [ring.middleware.params :refer [wrap-params]]))
 
-    (def page "
-        <html>
-            <body>
-                <label>Who are you?</label>
-                <input type='text' name='name'/>
-                <label>What do you want to say?</label>
-                <textarea name='comment'/>
-            </body>
-        </html>
-    ")
+    (defn page []
+      (html5
+        [:body
+         [:form {:method "POST" :action "/"}
+          [:label "Who are you?"]
+          [:input {:type "text" :name "name"}]
+          [:label "What do you want to say?"]
+          [:textarea {:name "comment"}]]]))
 
     (defn save-feedback [from comment]
       ; In a real app this would save the string to a database, email
@@ -101,7 +99,7 @@ data.  Let's sketch out how our handler functions will look:
       ([request]
         (handle-get request (feedback-form)))
       ([request form]
-        page))
+        (page)))
 
 There are a couple of things going on here.
 
@@ -110,8 +108,8 @@ takes a request, builds the default feedback form and forwards those along to
 the second piece, which actually renders the page.  You'll see why we split it
 up like that shortly.
 
-Calling `(feedback-form)` without data returns a map representing a fresh form.
-It will look like this:
+Calling `(feedback-form)` without data returns a result map representing a fresh
+form.  It will look like this:
 
     :::clojure
     {:fresh true
@@ -145,7 +143,8 @@ look like this:
      :errors nil}
 
 In a nutshell, this is all Red Tape does.  You define form functions using
-`defform`, and those functions take in data and turn it into a map like this.
+`defform`, and those functions take in data and turn it into a result map like
+this.
 
 Let's add a bit of data cleaning to the form to get something more useful.
 
@@ -211,7 +210,7 @@ invalid.
 Let's look at an example:
 
     :::clojure
-    (defform age-form
+    (defform age-form {}
       :age [clojure.string/trim
             #(Long. %)])
 
@@ -254,50 +253,65 @@ fine.  We'll see an example of this later.
 Finally, the `:data` entry in the result map is present and contains the data
 the user entered, even though it turned out to be invalid.
 
+Built-In Cleaners
+-----------------
+
+Red Tape contains a number of useful cleaner functions pre-defined in the
+`red-tape.cleaners` namespace.
+
+We'll use `red-tape.cleaners/non-blank` in this tutorial.  `non-blank` is
+a simple cleaner that throws an exception if it receives an empty string, or
+otherwise passes through the data unchanged.
+
+Let's change the form to make sure that users don't try to submit an empty
+comment (but we'll still allow an empty name, in case someone wants to comment
+anonymously):
+
+    :::clojure
+    (ns feedback
+      ; ...
+      (require [red-tape.cleaners :as cleaners]))
+
+    (defform feedback-form {}
+      :name [clojure.string/trim]
+      :comment [clojure.string/trim cleaners/non-blank])
+
+Notice that we trim whitespace *before* checking for a non-blank string, so
+a comment of all whitespace would result in an error.
+
 Putting it All Together
 -----------------------
 
 Now that we've seen how to clean and validate, we can finally connect the
 missing pieces to our feedback form.
 
-First we'll redefine our little HTML page so we can include some initial data in
-it:
+First we'll redefine our little HTML page to take the form as an argument, so we
+can pre-fill the inputs with any initial data:
 
     :::clojure
-    (def page "
-        <html>
-            <body>
-                <label>Who are you?</label>
-                <input type='text' name='name' value='%s'/>
-                <label>What do you want to say?</label>
-                <textarea name='comment' value='%s'/>
-            </body>
-        </html>
-    ")
+    (defn page [form]
+      (html5
+        [:body
+         [:form {:method "POST" :action "/"}
+          [:label "Who are you?"]
+          [:input {:type "text" :name "name"
+                   :value (get-in form [:data :name])}]
+          [:label "What do you want to say?"]
+          [:textarea {:name "comment"} (get-in form [:data :comment])]]]))
 
-The only change here is the `value='%s'` bits, which we'll use to stick in some
-data later.
+Notice how we pull the values of each field out of the `:data` entry in the form
+result map.
 
-We'll redefine `feedback-form` one last time:
-
-    :::clojure
-    (defform feedback-form {}
-      :name [clojure.string/trim]
-      :comment [clojure.string/trim])
-
-Now we can write the GET handler:
+Now we can write the final GET handler:
 
     :::clojure
     (defn handle-get
       ([request]
         (handle-get request (feedback-form)))
       ([request form]
-        (let [initial-name (:name (:data form))
-              initial-comment (:comment (:data form))]
-          (format page initial-name initial-comment))))
+        (page form)))
 
-Notice how we use the `:data` from the form when we're rendering the page.  This
-will make more sense once you see the POST handler:
+And the POST handler:
 
     :::clojure
     (defn handle-post [request]
@@ -314,8 +328,8 @@ valid, we save the feedback by using the cleaned `:results` and we're done.
 
 If it's *not* valid, we use the GET handler to re-render the form without
 redirecting.  We pass along our *invalid* form as we do that, so that when the
-GET handler uses the `:data` it will fill in the fields correctly so the user
-doesn't have to retype everything.
+GET handler calls the `page` and uses the `:data` it will fill in the fields
+correctly so the user doesn't have to retype everything.
 
 Summary
 -------
@@ -331,4 +345,5 @@ of the time you'll be doing what we just finished:
   and does the appropriate thing depending on whether it's valid or not.
 
 Now that you've got the general idea, it's time to look at a few topics in more
-detail.
+detail.  Start with the [form input](../input/) guide.
+

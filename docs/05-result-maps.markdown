@@ -1,10 +1,14 @@
 Result Maps
 ===========
 
-After you pass data through a form you'll get a result map back.  This map
-contains a number of entries that describe the results of running the cleaners
-on that data (or some placeholders when you run a form without data).  Let's
-look at each of the entries in detail.
+After you pass data through a form (or call a form without data) you'll get
+a result map back.
+
+This map contains a number of entries that describe the results of running the
+cleaners on that data (or some placeholders when you run a form without data).
+Let's look at each of the entries in detail.
+
+Once you're done here, move on to the [initial data](../initial-data/) guide.
 
 [TOC]
 
@@ -17,9 +21,12 @@ and `false` otherwise.
 :valid
 ------
 
-If the form was called with data, and the data passed through all cleaners
-without anything being thrown, this will be `true`.  Otherwise it will be
-`false.`
+If the form was called without data, this will be `nil`.
+
+Otherwise, if the form was called with data, and the data passed through all
+cleaners without anything being thrown, this will be `true`.
+
+Otherwise it will be `false.`
 
 This should be used to determine whether to trust the data from the form, or
 whether to re-render it for the user (and display the errors).
@@ -48,16 +55,26 @@ whatever was thrown.  For example:
 
 Only fields that actually threw errors will have entries in the `:errors` map.
 
-If no fields threw an error, `:errors` will be `nil`.
+If any form-level cleaners threw an error, `:errors` will contain an entry for
+`:red-tape/form`.  This will be a vector of form-level errors.
+
+TODO: Explain why it's a vector (when a set is given).
+
+If errors were thrown anywhere, `:errors` will be `nil`.
 
 :data
 -----
 
 The `:data` entry in the result map will contain the raw data that was passed
-into the form, *before* it was run through the cleaners.  This is useful for
-re-rendering the form when there are errors.
+into the form, *before* it was run through the cleaners.
 
-TODO: More.
+This is useful for re-rendering the form when there are errors.
+
+TODO: give a full example here.
+
+If this is the result map of a fresh form (a form that has been called without
+form data), every entry in `:data` will be an empty string (or initial data,
+which we'll discuss in the next chapter).
 
 :results
 --------

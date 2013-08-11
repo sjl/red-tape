@@ -2,7 +2,12 @@
   (:require [slingshot.slingshot :refer [try+ throw+]]))
 
 
-(defmacro map-for [& body]
+(defmacro map-for
+  "Like (for ...), but the body should return [k v] pairs that will be
+  turned into a map.
+
+  "
+  [& body]
   `(into {} (for ~@body)))
 
 
@@ -147,7 +152,7 @@
           [results form-errors] (clean-results results form-cleaners)]
       (if form-errors
         {:results nil
-         :errors {:form form-errors}
+         :errors {:red-tape/form form-errors}
          :valid false}
         {:results results
          :errors nil
@@ -160,17 +165,27 @@
   (let [blank (into {} (map #(vector % "") field-keys))]
     (merge blank initial)))
 
-(defn zip-map [a b]
+(defn zip-map
+  "Turn two vectors [k1 k2 ...] [v1 v2 ...] into a map {k1 v1 k2 v2 ...}."
+  [a b]
   (into {} (map vector a b)))
+
+(defn parse-fields
+  "Take a flat vector of fields and return a [fields form-cleaners] pair."
+  [fields]
+  (let [fields (into {} (map vec (partition 2 fields)))]
+    [(vec (dissoc fields :red-tape/form))
+     (get fields :red-tape/form)]))
+
 
 (defn form-guts
   "For internal use only.  You probably want form or defform.  Turn back now.
 
-  Return the guts of a form, suitable for splicing into (fn ..)
+  Return the guts of a form, suitable for splicing into (fn ...)
   or (defn name ...).
 
   "
-  [{:keys [arguments initial clean] :or {initial {} arguments []}} fields]
+  [{:keys [arguments initial] :or {initial {} arguments []}} fields]
   (let [arg-keys (map keyword arguments)
 
         ; Create the binding map, which is a map of keywords to symbols:
@@ -187,16 +202,16 @@
         ;
         ; [:f1 [a] :f2 [b c]]
         ;
-        ; into vector pairs like:
+        ; into a vector of field pairs, plus the form-level cleaners:
         ;
         ; [[:f1 [a]]
         ;  [:f2 [b c]]]
-        fields (mapv vec (partition 2 fields))
+        [fields form-cleaners] (parse-fields fields)
 
         ; Get a vector of just the field keys like [:f1 :f2].
         field-keys (mapv first fields)
 
-        ; A fresh form simply returns a map.
+        ; A fresh form simply returns a basic result map.
         fresh `{:fresh true
                 :arguments ~binding-map
                 :data (initial-data ~field-keys ~initial)
@@ -209,17 +224,33 @@
        (-> ~fields
          (zip-fields data#)
          process-fields
-         (process-result ~clean)
+         (process-result ~form-cleaners)
          (assoc :fresh false
                 :data data#
                 :arguments ~binding-map)))]))
 
 
 (defmacro form
-  [{:keys [arguments initial clean] :as options} & fields]
+  "Create an anonymous form.
+
+  form is to defform as fn is to defn.
+
+  "
+  [{:keys [arguments initial] :as options} & fields]
   `(fn ~@(form-guts options fields)))
 
 (defmacro defform
-  [form-name {:keys [arguments initial clean] :as options} & fields]
+  "Define a form.
+
+  The first argument is the name to def the form to.
+
+  The second argument is the option map.
+
+  The rest of the arguments are field and cleaner pairs.
+
+  See the full documentation for more information.
+
+  "
+  [form-name {:keys [arguments initial] :as options} & fields]
   `(defn ~form-name ~@(form-guts options fields)))
 
