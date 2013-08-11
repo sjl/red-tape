@@ -21,7 +21,7 @@ the result instead of the default empty string:
             :message ""}
      ...}
 
-When you run some data through the form, the initial data is ignored:
+When you run some data through the form, the initial data is ignored completely:
 
     :::clojure
     (sample-form {:email "foo@bar.com"

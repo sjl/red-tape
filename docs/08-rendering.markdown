@@ -10,6 +10,9 @@ Let's look at a full example that shows all the things you should think about
 when rendering a form.  This example will use the Hiccup templating library for
 brevity, but as mentioned you can use any templating library you like.
 
+Once you've read this section you're all set!  Dig in and start making some
+forms.  The [reference guide](../reference/) will be there when you need it.
+
 [TOC]
 
 Basic Structure
@@ -44,10 +47,11 @@ Rendering a Fresh Form
 Let's talk about the fresh form first.  We'll use a simple form as an example:
 
     :::clojure
-    (require '[red-tape.cleaners])
+    (require '[red-tape.cleaners :as cleaners])
 
     (defform simple-form {:initial {:name "Steve"}}
-      :name [red-tape.cleaners/non-blank])
+      :name [clojure.string/trim
+             cleaners/non-blank])
 
 Now we'll create the get handler for this:
 
@@ -99,7 +103,11 @@ account and display errors properly.  Let's see how we might do that:
           [:input {:type "submit"}]]]))
 
 There are two additions here.  First we check if there were any errors at the
-top of the form.  If there were, we display a message.
+top of the form.  If there were, we display a message at the top of the form.
+
+This is especially important when you have more than a single field, because the
+field with the problem may be further down the page and the user needs to know
+that they need to scroll down to see it.
 
 We also check if there were any errors for the specific field, and if so we
 display it.  In this simple example there's only one field, but in most forms
@@ -107,3 +115,8 @@ you'll have many fields, each of which may or may not have errors.
 
 This form didn't have any form-level cleaners, but if it did we would have
 wanted to display those too (probably at the top of the form).
+
+Also remember that the `:data` in the form that we're using to prepopulate the
+field will now contain whatever the user submitted.  That way we won't blow away
+the things the user typed if there happens to be an error.  They can fix the
+error and just hit submit.
