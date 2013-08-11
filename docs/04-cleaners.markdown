@@ -239,10 +239,15 @@ errors for each entry in the set of cleaners at once.  For example:
                               "New passwords do not match!"]}}
 
 Since the form-level cleaners were both specified in a set, Red Tape knows that
-one doesn't depend on the other.  So even though one of them failed, Red Tape
-will still run the others and return *all* the errors so you can show them all
-to the user at once.  Otherwise the user would have to tediously fix one error
-at a time and submit to see if there were any other problems.
+one doesn't depend on the other.  Even though one of them failed, Red Tape will
+still run the others and return *all* the errors so you can show them all to the
+user at once.  Otherwise the user would have to tediously fix one error at
+a time and submit to see if there were any other problems.
+
+One last thing: form-level cleaners can change the values in the map they return
+as much as they like, but they should *not* add or remove entries from it.  It's
+*probably* okay to add entries as long as they won't conflict with anything else
+(i.e.: use a namespaced keyword) but the author makes no guarantees about that.
 
 Built-In Cleaners
 -----------------
