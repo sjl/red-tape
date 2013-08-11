@@ -245,9 +245,10 @@ user at once.  Otherwise the user would have to tediously fix one error at
 a time and submit to see if there were any other problems.
 
 One last thing: form-level cleaners can change the values in the map they return
-as much as they like, but they should *not* add or remove entries from it.  It's
-*probably* okay to add entries as long as they won't conflict with anything else
-(i.e.: use a namespaced keyword) but the author makes no guarantees about that.
+as much as they like, but they should **not** add or remove entries from it.
+It's *probably* okay to add entries as long as they won't conflict with anything
+else (i.e.: use a namespaced keyword) but the author makes no guarantees about
+that.
 
 Built-In Cleaners
 -----------------
