@@ -152,7 +152,7 @@ Let's look at how to use form-level cleaners with a simple example:
                            :new-password-2 "b"})
     ; =>
     {:valid false
-     :errors {:red-tape/form ["New passwords do not match!"]}}
+     :errors {:red-tape/form #{"New passwords do not match!"}}}
 
 There's a lot to see here.  First, we defined a function that takes a map of
 form data (after any field cleaners have been run).
@@ -196,8 +196,7 @@ first two types:
     (defform foo {}
       ...
       :red-tape/form #{my-standalone-cleaner
-                       [my-cleaner-part-1
-                        my-cleaner-part-2]})
+                       [my-cleaner-part-1 my-cleaner-part-2]})
 
 Each entry in the set will be evaluated according to the rules above, and its
 output fed into the other entries.
@@ -208,7 +207,7 @@ cleaner depends on another one adjusting the data first, you need to use
 a vector to make sure they run in the correct order.
 
 The last thing to notice here is that the form-level errors are returned as
-a *vector* in the result map.  This is because Red Tape will return *all* the
+a *set* in the result map.  This is because Red Tape will return *all* the
 errors for each entry in the set of cleaners at once.  For example:
 
     :::clojure

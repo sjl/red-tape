@@ -47,10 +47,27 @@
     data
     (throw+ "No match!")))
 
+(defn b-c-match [data]
+  (if (= (:b data) (:c data))
+    data
+    (throw+ "No match 2!")))
+
 (defform form-cleaner-a-b {}
   :a []
   :b []
   :red-tape/form a-b-match)
+
+(defform form-cleaner-a-b-c-vec {}
+  :a []
+  :b []
+  :c []
+  :red-tape/form [a-b-match b-c-match])
+
+(defform form-cleaner-a-b-c-set {}
+  :a []
+  :b []
+  :c []
+  :red-tape/form #{a-b-match b-c-match})
 
 
 (deftest test-number-form
@@ -133,5 +150,18 @@
   (is (= (:results (form-cleaner-a-b {:a "foo" :b "foo"}))
          {:a "foo" :b "foo"}))
   (is (= (:errors (form-cleaner-a-b {:a "foo" :b "bar"}))
-         {:red-tape/form ["No match!"]}))
-  )
+         {:red-tape/form #{"No match!"}})))
+
+(deftest test-form-cleaner-a-b-c
+  (is (= (:results (form-cleaner-a-b-c-vec {:a "foo" :b "foo" :c "foo"}))
+         {:a "foo" :b "foo" :c "foo"}))
+  (is (= (:errors (form-cleaner-a-b-c-vec {:a "foo" :b "bar" :c "baz"}))
+         {:red-tape/form #{"No match!"}}))
+  (is (= (:errors (form-cleaner-a-b-c-vec {:a "foo" :b "foo" :c "baz"}))
+         {:red-tape/form #{"No match 2!"}}))
+  (is (= (:errors (form-cleaner-a-b-c-set {:a "foo" :b "bar" :c "baz"}))
+         {:red-tape/form #{"No match!" "No match 2!"}}))
+  (is (= (:errors (form-cleaner-a-b-c-set {:a "foo" :b "bar" :c "bar"}))
+         {:red-tape/form #{"No match!"}}))
+  (is (= (:errors (form-cleaner-a-b-c-set {:a "foo" :b "foo" :c "baz"}))
+         {:red-tape/form #{"No match 2!"}})))

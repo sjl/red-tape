@@ -55,7 +55,7 @@ whatever was thrown.  For example:
 Only fields that actually threw errors will have entries in the `:errors` map.
 
 If any form-level cleaners threw an error, `:errors` will contain an entry for
-`:red-tape/form`.  This will be a vector of form-level errors (for the reasons
+`:red-tape/form`.  This will be a set of form-level errors (for the reasons
 described in the previous section).
 
 If no errors were thrown anywhere, `:errors` will be `nil`.

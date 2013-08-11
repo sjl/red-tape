@@ -138,7 +138,7 @@
   "
   [results cleaner-set]
   (loop [results results
-         errors []
+         errors #{}
          [c & cs] (vec cleaner-set)]
     (if-not c
       (if (empty? errors)
