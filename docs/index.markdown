@@ -3,6 +3,7 @@ by Django's forms (the good parts), with some Clojurey twists.
 
 **License:** MIT/X11  
 **Documentation:** <http://sjl.bitbucket.org/red-tape/>  
+**Changelog:** <http://sjl.bitbucket.org/red-tape/changelog/>  
 **Issues:** <http://github.com/sjl/red-tape/issues/>  
 **Mercurial:** <http://bitbucket.org/sjl/red-tape/>  
 **Git:** <http://github.com/sjl/red-tape/>
