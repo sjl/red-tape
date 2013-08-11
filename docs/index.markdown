@@ -88,7 +88,7 @@ the user again so they can fix it:
      :errors {:comment "This field is required."}
      :data {:email ""
             :comment ""}
-     :arguments {:user {:email "steve@stevelosh.com"}}}
+     :arguments {:user {:email ""}}}
 
 But you'll really need to read the docs to understand what's happening here.
 

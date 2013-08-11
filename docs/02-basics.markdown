@@ -21,11 +21,11 @@ comments.  Let's sketch out the normal structure of that now:
 
     :::clojure
     (ns feedback
-      (:require [compojure.core :refer :all]
-                [compojure.route :as route]
-                [hiccup.page :refer [html5]]
-                [ring.adapter.jetty :refer [run-jetty]]
-                [ring.middleware.params :refer [wrap-params]]))
+      (require [compojure.core :refer :all]
+               [compojure.route :as route]
+               [hiccup.page :refer [html5]]
+               [ring.adapter.jetty :refer [run-jetty]]
+               [ring.middleware.params :refer [wrap-params]]))
 
     (defn page []
       (html5
@@ -62,10 +62,11 @@ comments.  Let's sketch out the normal structure of that now:
 That's about it for the boilerplate.  The next step is to fill in the bodies of
 `handle-get` and `handle-post`.  We'll need to do a few things:
 
+* Render the initial comment form when the user first GETs the page.
 * Validate incoming POST data to make sure it's sane.
-* If the data isn't valid, we need to inform the user and re-render the form
-  nicely.
-* Once we've got valid data, we'll clean it up and send it off to be saved.
+* If the data isn't valid, inform the user and re-render the form nicely so they
+  can fix it.
+* Once we've got valid data, clean it up and send it off to be saved.
 
 This is where Red Tape comes in.
 
@@ -108,7 +109,7 @@ takes a request, builds the default feedback form and forwards those along to
 the second piece, which actually renders the page.  You'll see why we split it
 up like that shortly.
 
-Calling `(feedback-form)` without data returns a result map representing a fresh
+Calling `(feedback-form)` without data returns a "result map" representing a fresh
 form.  It will look like this:
 
     :::clojure
@@ -152,8 +153,8 @@ Cleaners
 --------
 
 Every field you define in a `defform` also gets a vector of "cleaners"
-associated with it.  A cleaner is simply a vanilla Clojure function that takes
-one argument (the incoming value) and returns a new value (the outgoing result).
+associated with it.  A cleaner is a vanilla Clojure function that takes one
+argument (the incoming value) and returns a new value (the outgoing result).
 
 Let's see this in action by modifying our form to strip leading and trailing
 whitespace from the user's name automatically:
@@ -164,15 +165,15 @@ whitespace from the user's name automatically:
       :comment [])
 
 `clojure.string/trim` is just a normal Clojure function that trims off
-whitespace.  Let's imagine that the user entered " Steve " as their name this
-time.  Calling `(feedback-form data)` now results in the following map:
+whitespace.  Let's imagine that the user entered `     Steve ` as their name
+this time.  Calling `(feedback-form data)` now results in the following map:
 
     :::clojure
     {:fresh false
      :valid true
      :arguments {}
-     :data    {:name " Steve " :comment "Hello!"}
-     :results {:name "Steve"   :comment "Hello!"}
+     :data    {:name "    Steve " :comment "Hello!"}
+     :results {:name "Steve"      :comment "Hello!"}
      :errors nil}
 
 The `:data` in the result map still contains the raw data the user entered, but
@@ -188,12 +189,12 @@ simple cleaning functions and combine them as needed.  For example:
              clojure.string/lower-case]
       :comment [clojure.string/trim])
 
-    (feedback-form {:name " Steve " :comment " Hello! "})
+    (feedback-form {:name "    Steve " :comment " Hello! "})
     ; =>
     {:fresh false
      :valid true
-     :data    {:name " Steve " :comment " Hello! "}
-     :results {:name "steve"   :comment "Hello!"}
+     :data    {:name "    Steve " :comment " Hello! "}
+     :results {:name "steve"      :comment "Hello!"}
      ; ...
      }
 
@@ -240,19 +241,20 @@ There are a few things to see here.  If any cleaner function throws an
 Exception, the resulting map will have `:valid` set to `false`.
 
 There will also be no `:results` entry in an invalid result.  You only get
-`:results` if your entire form is valid.
+`:results` if your *entire* form is valid.  This is to help prevent you from
+accidentally using the results of a form with invalid data.
 
 The `:errors` map will map field names to the exception their cleaners threw.
 This happens on a per-field basis, so you can have separate errors for each
 field.
 
-Red Tape uses Slingshot's `try+` to catch exceptions, so if you want you can use
-`throw+` to throw errors in an easier-to-manage way and they'll be caught just
-fine.
+Red Tape uses Slingshot's `try+` to catch exceptions, so if you want to you can
+use `throw+` to throw errors in an easier-to-manage way and they'll be caught
+just fine.
 
     :::clojure
     (defn ensure-not-immortal [age]
-      (if (> age 120)
+      (if (> age 150)
         (throw+ "I think you're lying!")
         age))
 
@@ -265,7 +267,7 @@ fine.
     ; =>
     {:fresh false
      :valid false
-     :data {:age "cats"}
+     :data {:age "1000"}
      :results nil
      :errors {:age "I think you're lying!"}}
 
@@ -275,7 +277,7 @@ fine because we still kept the `#(Long. %)` cleaner to handle that conversion.
 Finally, also notice that the `:data` entry in the result map is present and
 contains the data the user entered, even though it turned out to be invalid.
 We'll use this later when we want to rerender the form, so the user doesn't have
-to type all the data out again.
+to type all the data again.
 
 Built-In Cleaners
 -----------------
