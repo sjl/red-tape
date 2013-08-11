@@ -40,68 +40,88 @@
   remove it if you want.
 
   "
-  [s]
-  (ensure-not s #(= "" %1)
-              "This field is required."))
+  ([s]
+   (non-blank s "This field is required."))
+  ([s msg]
+   (ensure-not s #(= "" %) msg)))
 
 (defn min-length
   "Ensure that the string is at least N characters long."
-  [n s]
-  (ensure-not s #(< (count %) n)
-              (str "This field must be at least " n " characters.")))
+  ([n s]
+   (min-length n s
+               (str "This field must be at least " n " characters.")))
+  ([n s msg]
+   (ensure-not s #(< (count %) n) msg)))
 
 (defn max-length
   "Ensure that the string is at most N characters long."
-  [n s]
-  (ensure-not s #(> (count %) n)
-              (str "This field must be at most " n " characters.")))
+  ([n s]
+   (max-length n s
+               (str "This field must be at most " n " characters.")))
+  ([n s msg]
+   (ensure-not s #(> (count %) n) msg)))
 
 (defn length
   "Ensure that the string is at least min and at most max characters long."
-  [min max s]
-  (->> s
-    (min-length min)
-    (max-length max)))
+  ([min max s]
+   (->> s
+     (min-length min)
+     (max-length max)))
+  ([min max s min-error max-error]
+   (->> s
+     (min-length min min-error)
+     (max-length max max-error))))
 
-(defn empty-to-nil
-  "Converts empty strings to nil, leaving other strings alone.
-
-  Whitespace is treated like any other character -- use clojure.string/trim to
-  remove it if you want.
-
-  "
-  [s]
-  (if (= s "")
-    nil
-    s))
+(defn matches
+  "Ensure that the string (fully) matches the given regular expression."
+  ([regex s]
+   (matches regex s "Invalid format."))
+  ([regex s msg]
+   (ensure-is s #(re-matches regex %) msg)))
 
 
 ; Numerics
 (defn to-long
   "Convert a string to a Long."
-  [s]
-  (try+
-    (Long. s)
-    (catch Object _ "Please enter a whole number.")))
+  ([s]
+   (to-long s "Please enter a whole number."))
+  ([s msg]
+   (try+
+     (Long. s)
+     (catch Object _ (throw+ msg)))))
 
 (defn to-double
   "Convert a string to a Double."
-  [s]
-  (try+
-    (Double. s)
-    (catch Object _ "Please enter a number.")))
+  ([s]
+   (to-double s "Please enter a number."))
+  ([s msg]
+   (try+
+     (Double. s)
+     (catch Object _ (throw+ msg)))))
 
-(defn positive [n]
-  (ensure-is n pos?
-             "Please enter a positive number."))
+(defn positive
+  ([n]
+   (positive n "Please enter a positive number."))
+  ([n msg]
+   (ensure-is n pos? msg)))
 
-(defn negative [n]
-  (ensure-is n neg?
-             "Please enter a negative number."))
+(defn negative
+  ([n]
+   (negative n "Please enter a negative number."))
+  ([n msg]
+   (ensure-is n neg? msg)))
+
+(defn nonzero
+  ([n]
+   (nonzero n "Cannot be zero."))
+  ([n msg]
+   (ensure-not n zero? msg)))
 
 
 ; Other
-(defn choices [cs v]
-  (ensure-is v #(contains? cs %)
-             "Invalid choice."))
+(defn choices
+  ([cs v]
+   (choices cs v "Invalid choice."))
+  ([cs v msg]
+   (ensure-is v #(contains? cs %) msg)))
 

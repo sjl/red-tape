@@ -35,7 +35,7 @@
   "
   [data cleaners]
   (if (and (= data "")
-           (contains (:tags (meta cleaners)) :red-tape/optional))
+           (:red-tape/optional (meta cleaners)))
     [nil nil]
     (pipe-through data cleaners)))
 
