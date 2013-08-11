@@ -39,7 +39,6 @@ else with Slingshot's `throw+`) then `:errors` will be a map of field keys to
 whatever was thrown.  For example:
 
     :::clojure
-
     (defn always-fail [x]
       (throw+ "Error!"))
 
@@ -56,11 +55,10 @@ whatever was thrown.  For example:
 Only fields that actually threw errors will have entries in the `:errors` map.
 
 If any form-level cleaners threw an error, `:errors` will contain an entry for
-`:red-tape/form`.  This will be a vector of form-level errors.
+`:red-tape/form`.  This will be a vector of form-level errors (for the reasons
+described in the previous section).
 
-TODO: Explain why it's a vector (when a set is given).
-
-If errors were thrown anywhere, `:errors` will be `nil`.
+If no errors were thrown anywhere, `:errors` will be `nil`.
 
 :data
 -----

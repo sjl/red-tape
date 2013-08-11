@@ -140,17 +140,19 @@ Let's look at how to use form-level cleaners with a simple example:
         form-data))
 
     (defform change-password-form {}
+      :user-id []
       :old-password []
       :new-password-1 []
       :new-password-2 []
       :red-tape/form new-passwords-match)
 
-    (change-password-form {:old-password "foo"
+    (change-password-form {:user-id "101"
+                           :old-password "foo"
                            :new-password-1 "a"
                            :new-password-2 "b"})
     ; =>
     {:valid false
-     :errors {:red-tape/form "New passwords do not match!"}}
+     :errors {:red-tape/form ["New passwords do not match!"]}}
 
 There's a lot to see here.  First, we defined a function that takes a map of
 form data (after any field cleaners have been run).
@@ -204,6 +206,44 @@ This happens in an unspecified order, so you should only use a set to define
 form-level cleaners that explicitly do *not* depend on each other.  If one
 cleaner depends on another one adjusting the data first, you need to use
 a vector to make sure they run in the correct order.
+
+The last thing to notice here is that the form-level errors are returned as
+a *vector* in the result map.  This is because Red Tape will return *all* the
+errors for each entry in the set of cleaners at once.  For example:
+
+    :::clojure
+    (defn new-passwords-match [form-data]
+      (if (not= (:new-password-1 form-data)
+                (:new-password-2 form-data))
+        (throw+ "New passwords do not match!")
+        form-data))
+
+    (defn old-password-is-correct [form-data]
+      (if (check-password (:user-id form) (:old-password form)))
+        form-data
+        (throw+ "Current password is not correct!"))
+
+    (defform change-password-form {}
+      :user-id []
+      :old-password []
+      :new-password-1 []
+      :new-password-2 []
+      :red-tape/form #{old-password-is-correct new-passwords-match})
+
+    (change-password-form {:user-id "101"
+                           :old-password "wrong"
+                           :new-password-1 "a"
+                           :new-password-2 "b"})
+    ; =>
+    {:valid false
+     :errors {:red-tape/form ["Current password is not correct!"
+                              "New passwords do not match!"]}}
+
+Since the form-level cleaners were both specified in a set, Red Tape knows that
+one doesn't depend on the other.  So even though one of them failed, Red Tape
+will still run the others and return *all* the errors so you can show them all
+to the user at once.  Otherwise the user would have to tediously fix one error
+at a time and submit to see if there were any other problems.
 
 Built-In Cleaners
 -----------------
