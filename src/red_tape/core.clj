@@ -196,6 +196,38 @@
      (get fields :red-tape/form)]))
 
 
+(defn sanity-check-form-guts
+  "Sanity check defform guts so people don't go fucking insane when it breaks."
+  [arguments initial fields field-keys]
+
+  (doseq [arg arguments]
+    (assert (symbol? arg)
+            (format "Form arguments must be symbols; got %s" arg)))
+
+  (assert
+    (map? initial)
+    (format "Initial form data must be specified as a map; got %s" initial))
+
+  (doseq [[k _] initial]
+    (assert
+      (keyword? k)
+      (format "Initial form data keys must be keywords; got %s" k))
+    (assert
+      (contains? (set field-keys) k)
+      (format "Initial form data contains a field not in the form: %s" k)))
+
+  (doseq [[field-key cleaners] fields]
+    (assert
+      (vector? cleaners)
+      (format
+        "Field cleaners must be given in a vector; got %s for field %s"
+        cleaners
+        field-key)))
+
+  (doseq [k field-keys]
+    (assert (keyword? k)
+            (format "Field names must be keywords; got %s" k))))
+
 (defn form-guts
   "For internal use only.  You probably want form or defform.  Turn back now.
 
@@ -236,6 +268,9 @@
                 :valid nil
                 :errors nil
                 :results nil}]
+
+    (sanity-check-form-guts arguments initial fields field-keys)
+
     `[([~@arguments]
        ~fresh)
       ([~@arguments data#]
