@@ -1,4 +1,4 @@
-(defproject red-tape "0.1.0"
+(defproject red-tape "1.0.0"
   :description "Web forms in Clojure."
   :url "http://sjl.bitbucket.org/red-tape/"
   :license {:name "MIT/X11"}
