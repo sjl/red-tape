@@ -69,8 +69,10 @@
 
   "
   [fields data]
-  (for [[field-name cleaners] fields]
-    [field-name (get data (keyword field-name) "") cleaners]))
+  (for [[field-name cleaners] fields
+        :let [data (map-for [[k v] data]
+                            [(keyword k) v])]]
+    [field-name (get data field-name "") cleaners]))
 
 (defn process-fields
   "Process the zipped fields and return a map of the outcome.

@@ -21,8 +21,8 @@
   :n [cs/to-long])
 
 (defform numbers-form {}
-  :n [cs/to-long]
-  :m [cs/to-long])
+  :n [#(cs/to-long % "bad")]
+  :m [#(cs/to-long % "bad")])
 
 (defform stripping-number-form {}
   :n [clojure.string/trim cs/to-long])
@@ -31,8 +31,8 @@
   :state [clojure.string/trim (partial cs/choices states)])
 
 (defform initial-form {:initial {:x "42"}}
-  :x []
-  :y [])
+  :x [cs/to-long]
+  :y [cs/to-long])
 
 (defform dynamic-initial-form
   {:arguments [x]
@@ -71,29 +71,73 @@
 
 
 (deftest test-number-form
-  (is (= (number-form)
-         (fresh-form {:n ""})))
+  (testing
+    "fresh vanilla form structure"
+    (is (= (number-form)
+           (fresh-form {:n ""}))))
 
-  (is (= (:results (number-form {"n" "10"})))
-      10)
+  (testing
+    "forms can take string keys"
+    (is (= (:results (number-form {"n" "10"}))
+        {:n 10}))) 
 
-  (are [n result]
-       (= (:results (number-form {:n n}))
-          {:n result})
-       "10" 10
-       "1" 1
-       "-42" -42))
+  (testing
+    "successful forms return results"
+    (are [n result]
+         (= (number-form {:n n})
+            {:valid true
+             :fresh false
+             :data {:n n}
+             :results {:n result}
+             :arguments {}
+             :errors nil})
+         "10" 10
+         "1" 1
+         "-42" -42
+         "0" 0))
+
+  (testing
+    "unsuccessful forms return errors"
+    (are [n]
+         (let [form (number-form {:n n})]
+           (and
+             (= (:fresh form) false)
+             (= (:valid form) false)
+             (= (:results form) nil)
+             (= (:errors form) {:n "Please enter a whole number."})
+             (= (:data form) {:n n})))
+         ""
+         "1 + 1"
+         "1dogs0"
+         "zero")))
 
 (deftest test-numbers-form
-  (is (= (numbers-form)
-         (fresh-form {:n ""
-                      :m ""})))
+  (testing
+    "fresh form structure"
+    (is (= (numbers-form)
+           (fresh-form {:n ""
+                        :m ""})))) 
 
-  (are [n m rn rm]
-       (= (:results (numbers-form {:m m :n n}))
-          {:n rn :m rm})
-       "10" "0" 10 0
-       "1" "2" 1 2))
+  (testing "multiple field results"
+    (are [n m rn rm]
+         (= (:results (numbers-form {:m m :n n}))
+            {:n rn :m rm})
+         "10" "0" 10 0
+         "1" "2" 1 2))
+
+  (testing
+    "multiple field errors"
+    (are [n m errors]
+         (= (numbers-form {:n n :m m})
+            {:fresh false
+             :valid false
+             :results nil
+             :errors errors
+             :data {:n n :m m}
+             :arguments {}})
+         "1" "dogs" {:m "bad"}
+         "cats" "1" {:n "bad"}
+         "cats" "dogs" {:n "bad" :m "bad"})))
 
 (deftest test-stripping-number-form
   (are [n result]
@@ -104,32 +148,45 @@
        "   -42  " -42))
 
 (deftest test-state-form
-  (are [available-states data result]
-       (= (:results (state-form available-states {:state data}))
-          {:state result})
-       #{"pa" "ny"} " ny"   "ny"
-       #{"ny"}      " ny  " "ny"
-       #{"ny"}      "ny"    "ny")
+  (testing
+    "choices loops things up"
+    (are [available-states data result]
+         (= (:results (state-form available-states {:state data}))
+            {:state result})
+         #{"pa" "ny"} " ny"   "ny"
+         #{"ny"}      " ny  " "ny"
+         #{"ny"}      "ny"    "ny")) 
 
-  (are [available-states data errors]
-       (= (:errors (state-form available-states {:state data}))
-          errors)
-       #{"pa" "ny"} "nj" {:state "Invalid choice."}))
+  (testing "choices excludes nonmembers, is case sensitive"
+    (are [available-states data errors]
+         (= (:errors (state-form available-states {:state data}))
+            errors)
+         #{"pa" "ny"} "nj" {:state "Invalid choice."}
+         #{"pa" "ny"} "NY" {:state "Invalid choice."})))
 
 (deftest test-initial-form
-  ; Initial data should be passed through to the initial :data map.
-  (is (= (initial-form)
-         (fresh-form {:x "42"
-                      :y ""})))
+  (testing
+    "initial data should be passed through to the initial :data map"
+    (is (= (initial-form)
+           (fresh-form {:x "42"
+                        :y ""})))) 
 
-  ; Initial data should be ignored when we have real data.
-  (is (= (initial-form {:x "1" :y "2"})
-         {:valid true
-          :fresh false
-          :data {:x "1" :y "2"}
-          :results {:x "1" :y "2"}
-          :arguments {}
-          :errors nil})))
+  (testing
+    "ignore initial data when we have real data, regardless of success"
+    (is (= (initial-form {:x "1" :y "2"})
+           {:valid true
+            :fresh false
+            :data {:x "1" :y "2"}
+            :results {:x 1 :y 2}
+            :arguments {}
+            :errors nil}))
+    (is (= (initial-form {:x "dogs" :y "2"})
+           {:valid false
+            :fresh false
+            :data {:x "dogs" :y "2"}
+            :results nil
+            :arguments {}
+            :errors {:x "Please enter a whole number."}}))))
 
 (deftest test-dynamic-initial-form
   (is (= (dynamic-initial-form ["1" "2"])

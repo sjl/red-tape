@@ -28,7 +28,7 @@
   [value pred error-message]
   `(let [v# ~value]
      (if (~pred v#)
-       (throw+ ~msg)
+       (throw+ ~error-message)
        v#)))
 
 
