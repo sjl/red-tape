@@ -130,10 +130,9 @@
 
   (def us-states #{\"NY\" \"PA\" \"OR\" ...})
 
-  (defform address-form {}
-    ...
-    :state [#(choices us-states %
-                      \"Please enter a valid US state.\")])
+    (defform address-form {}
+      ...
+      :state [#(choices us-states % \"Please enter a valid US state.\")])
 
   Not limited to strings, so you can parse the input into something else and
   then check for those with choices if you want.
@@ -149,13 +148,13 @@
 
 (defn to-boolean
   "Convert a string to a boolean.
-  
+
   The following strings are considered true (case-insensitive):
 
     1
     true
     t
-  
+
   The following strings are considered false (case-insensitive):
 
     0

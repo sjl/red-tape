@@ -1,5 +1,5 @@
 (ns red-tape.core
-  (:require [slingshot.slingshot :refer [try+ throw+]]))
+  (:require [slingshot.slingshot :refer [try+]]))
 
 
 (defmacro map-for
@@ -93,7 +93,7 @@
                       :let [[value error] (clean-data data cleaners)]]
                   [k value error])
         values (map-for [[k v _] results]
-                         [k v])
+                        [k v])
         errors (map-for [[k _ e] results
                          :when (not (nil? e))]
                         [k e])]

@@ -6,12 +6,12 @@
 
 (defmacro throws [& body]
   `(~'is (not (nil? (try+ (do ~@body nil)
-                        (catch Object e# e#))))))
+                          (catch Object e# e#))))))
 
 (defmacro are-bad [msg test-fn & values]
   `(testing ~msg
      ~@(map (fn [v]
-         `(throws (~test-fn ~v))) values)))
+              `(throws (~test-fn ~v))) values)))
 
 
 ; Strings

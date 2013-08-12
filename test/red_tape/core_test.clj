@@ -79,7 +79,7 @@
   (testing
     "forms can take string keys"
     (is (= (:results (number-form {"n" "10"}))
-        {:n 10})))
+           {:n 10})))
 
   (testing
     "successful forms return results"
