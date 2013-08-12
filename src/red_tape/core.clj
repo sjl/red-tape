@@ -196,13 +196,27 @@
      (get fields :red-tape/form)]))
 
 
-(defn sanity-check-form-guts
-  "Sanity check defform guts so people don't go fucking insane when it breaks."
-  [arguments initial fields field-keys]
+(defn sanity-check-form-arguments
+  "Sanity check the form arguments.
+
+  We have to do this separately from the rest of the form guts because the
+  arguments are used to build some of the other pieces and we need to know if
+  they're okay before that happens.
+
+  "
+  [arguments]
+
+  (assert
+    (vector? arguments)
+    (format "Form arguments must be given in a vector; got %s" arguments))
 
   (doseq [arg arguments]
     (assert (symbol? arg)
-            (format "Form arguments must be symbols; got %s" arg)))
+            (format "Form arguments must be symbols; got %s" arg))))
+
+(defn sanity-check-form-guts
+  "Sanity check defform guts so people don't go fucking insane when it breaks."
+  [initial fields field-keys form-cleaners]
 
   (assert
     (map? initial)
@@ -226,7 +240,12 @@
 
   (doseq [k field-keys]
     (assert (keyword? k)
-            (format "Field names must be keywords; got %s" k))))
+            (format "Field names must be keywords; got %s" k)))
+
+  (assert
+    (not (or (map? form-cleaners) (list? form-cleaners)))
+    (format "Form-level cleaners must be a function, vector, or set; got %s"
+            form-cleaners)))
 
 (defn form-guts
   "For internal use only.  You probably want form or defform.  Turn back now.
@@ -236,6 +255,9 @@
 
   "
   [{:keys [arguments initial] :or {initial {} arguments []}} fields]
+
+  (sanity-check-form-arguments arguments)
+
   (let [arg-keys (map keyword arguments)
 
         ; Create the binding map, which is a map of keywords to symbols:
@@ -269,7 +291,7 @@
                 :errors nil
                 :results nil}]
 
-    (sanity-check-form-guts arguments initial fields field-keys)
+    (sanity-check-form-guts initial fields field-keys form-cleaners)
 
     `[([~@arguments]
        ~fresh)
