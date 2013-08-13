@@ -18,7 +18,7 @@ First you'll define a form:
 
     :::clojure
     (ns my-web-app
-        (:require [red-tape.core :refer defform]
+        (:require [red-tape.core :refer [defform]]
                   [red-tape.cleaners :as cleaners]))
 
     (defform comment-form
