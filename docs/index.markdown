@@ -111,7 +111,7 @@ happy with any of them for a few reasons:
 In a nutshell, Red Tape was made by someone who used Django's forms in client
 sites for years and knows all the [rough edges][goodfields] that needed sanding.
 
-[goodfields]:
+[goodfields]: https://github.com/dwaiter/django-goodfields
 
 Get Started
 -----------
