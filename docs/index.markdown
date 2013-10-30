@@ -23,7 +23,7 @@ First you'll define a form:
 
     (defform comment-form
       {:arguments [user]
-       :initial {:email (:email-address user)}}
+       :initial {:email (:email user)}}
 
       :email ^:red-tape/optional
              [#(cleaners/matches #"\S+@\S+" %
