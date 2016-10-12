@@ -243,7 +243,12 @@
             (format "Field names must be keywords; got %s" k)))
 
   (assert
-    (not (or (map? form-cleaners) (list? form-cleaners)))
+    (let [form-cleaners (eval form-cleaners)]
+      (or
+        (nil? form-cleaners)
+        (vector? form-cleaners)
+        (set? form-cleaners)
+        (fn? form-cleaners)))
     (format "Form-level cleaners must be a function, vector, or set; got %s"
             form-cleaners)))
 
