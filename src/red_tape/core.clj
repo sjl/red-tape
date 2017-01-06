@@ -240,12 +240,7 @@
 
   (doseq [k field-keys]
     (assert (keyword? k)
-            (format "Field names must be keywords; got %s" k)))
-
-  (assert
-    (not (or (map? form-cleaners) (list? form-cleaners)))
-    (format "Form-level cleaners must be a function, vector, or set; got %s"
-            form-cleaners)))
+            (format "Field names must be keywords; got %s" k))))
 
 (defn form-guts
   "For internal use only.  You probably want form or defform.  Turn back now.

@@ -283,14 +283,5 @@
     (macro-asserts (form {} :cats {}))
     (macro-asserts (form {} :cats ()))
     (macro-asserts (form {} :cats identity))
-    (macro-asserts-not (form {} :cats [])))
-
-  (testing "form-level cleaners can be a vector, a function, or a set"
-    (macro-asserts (form {} :red-tape/form {}))
-    (macro-asserts (form {} :red-tape/form ()))
-    (macro-asserts-not (form {} :red-tape/form identity))
-    (macro-asserts-not (form {} :red-tape/form []))
-    (macro-asserts-not (form {} :red-tape/form [identity]))
-    (macro-asserts-not (form {} :red-tape/form #{identity}))
-    (macro-asserts-not (form {} :red-tape/form #{identity [identity]}))))
+    (macro-asserts-not (form {} :cats []))))
 

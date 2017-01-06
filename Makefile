@@ -1,4 +1,4 @@
-.PHONY: test docs pubdocs test-sbcl test-ccl test-ecl vendor
+.PHONY: docs pubdocs
 
 docfiles = $(shell hg files docs)
 
